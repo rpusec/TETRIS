@@ -11,6 +11,7 @@ var wasFastForwarded = false; //determens if blocks were fast forwarded
 var previousShape = "";
 var currentShape = "";
 var nextShape = "";
+var arrNextShape;
 
 var repeatingGame = false; //has the game been repeated
 
@@ -18,6 +19,10 @@ var rotatingPoint; //this block will provide the X and Y coordinates when rotati
 
 var moveSpeed = 25; //current speed
 var downSpeed = 5;
+
+var moveForResize = 0;
+var posNextShapeLeft = 0;
+var currBlocksResizeFor = 0;
 
 var arrCurrBlocks = new Array(); //current block
 
@@ -63,6 +68,18 @@ function onMoveBlocks()
 	if(!gamePaused)
 	{
 		moveCurrBlocks("down", downSpeed);
+		
+		var arrLeftPos = new Array();
+		
+		for(var i = 0; i < listOfBlocks.length; i++)
+			arrLeftPos.push($(listOfBlocks[i]).offset().left - $("#screen").offset().left);
+		moveForResize = getNum(arrLeftPos, true);
+		
+		arrLeftPos.splice(0, arrLeftPos.length);
+		
+		for(var i = 0; i < arrCurrBlocks.length; i++)
+			arrLeftPos.push($(arrCurrBlocks[i]).offset().left - $("#screen").offset().left);
+		currBlocksResizeFor = getNum(arrLeftPos, true);
 		
 		//tests if the blocks reached the end of the #screen div
 		if(areBlocksDown()) 
@@ -410,20 +427,20 @@ function calcNextShape()
 
 function displayNextShape(shape)
 {
-	var arrShape, color, posLeft, posTop;
+	var arrShape, color, posTop;
 	
 	switch(shape.substring(0,1))
 	{
-		case "o" : arrShape = arrO; 		color = imgBlockPath + "green" 		+ 		imgExtension; posLeft = 33; posTop = 50; break;
-		case "i" : arrShape = arrI_vert; 	color = imgBlockPath + "yellow" 	+ 		imgExtension; posLeft = 45; posTop = 25; break;
-		case "z" : arrShape = arrZ_horiz; 	color = imgBlockPath + "white" 		+ 		imgExtension; posLeft = 20; posTop = 50; break;
-		case "t" : arrShape = arrT_down; 	color = imgBlockPath + "red" 		+ 		imgExtension; posLeft = 20; posTop = 25; break;
-		case "l" : arrShape = arrL_top; 	color = imgBlockPath + "blue" 		+ 		imgExtension; posLeft = 33; posTop = 35; break;
-		case "j" : arrShape = arrJ_top; 	color = imgBlockPath + "aqua" 		+ 		imgExtension; posLeft = 30; posTop = 35; break;
+		case "o" : arrShape = arrO; 		color = imgBlockPath + "green" 		+ 		imgExtension; posNextShapeLeft = 33; posTop = 50; break;
+		case "i" : arrShape = arrI_vert; 	color = imgBlockPath + "yellow" 	+ 		imgExtension; posNextShapeLeft = 45; posTop = 25; break;
+		case "z" : arrShape = arrZ_horiz; 	color = imgBlockPath + "white" 		+ 		imgExtension; posNextShapeLeft = 20; posTop = 50; break;
+		case "t" : arrShape = arrT_down; 	color = imgBlockPath + "red" 		+ 		imgExtension; posNextShapeLeft = 20; posTop = 25; break;
+		case "l" : arrShape = arrL_top; 	color = imgBlockPath + "blue" 		+ 		imgExtension; posNextShapeLeft = 33; posTop = 35; break;
+		case "j" : arrShape = arrJ_top; 	color = imgBlockPath + "aqua" 		+ 		imgExtension; posNextShapeLeft = 30; posTop = 35; break;
 	}
 	
 	$('#nextBlock').html(""); //deletes all elements
-	var arrNextShape = buildBlocks($("#nextBlock").offset().left + posLeft, $("#nextBlock").offset().top + posTop, color, arrShape);
+	arrNextShape = buildBlocks($("#nextBlock").offset().left + posNextShapeLeft, $("#nextBlock").offset().top + posTop, color, arrShape);
 	for(var i = 0; i < arrNextShape.length; i++)
 		$("#nextBlock").appearFromLeft(arrNextShape[i]);
 }
@@ -643,10 +660,56 @@ function getNum(numbers, isMin)
 function isGameOver()
 {
 	//it is enough to just see where the last 4 elements of the listOfBlocks Array are (what their location is)
-	//if one of those elements is at the end of the #screen div, then the game ends
 	for(var i = listOfBlocks.length-1; i != listOfBlocks.length-5; i--)
 	{
 		if($(listOfBlocks[i]).offset().top <= $("#screen").offset().top + moveSpeed) {gameOver = true; break;}
 		else {gameOver = false;}
 	}
 }
+
+$(window).on("resize", function(){
+
+	//all blocks
+	var arrBlocksLeft = new Array();
+	
+	for(var i = 0; i < listOfBlocks.length; i++)
+		arrBlocksLeft.push($(listOfBlocks[i]).offset().left);
+		
+	var smallestLeft = getNum(arrBlocksLeft, true);
+	
+	for(var i = 0; i < listOfBlocks.length; i++)
+	{
+		var moveFor = $("#screen").offset().left - smallestLeft; 
+		$(listOfBlocks[i]).css("left", ($(listOfBlocks[i]).offset().left + moveFor + moveForResize) + "px");
+	}
+	
+	arrBlocksLeft.splice(0,arrBlocksLeft.length);
+	
+	//next shape
+	for(var i = 0; i < arrNextShape.length; i++)
+		arrBlocksLeft.push($(arrNextShape[i]).offset().left);
+		
+	smallestLeft = getNum(arrBlocksLeft, true);
+	
+	for(var i = 0; i < arrNextShape.length; i++)
+	{
+		var moveFor = $("#nextBlock").offset().left - smallestLeft; 
+		$(arrNextShape[i]).css("left", ($(arrNextShape[i]).offset().left + moveFor + posNextShapeLeft + 35) + "px"); 
+	}
+	
+	arrBlocksLeft.splice(0,arrBlocksLeft.length);
+	
+	//curr blocks
+	for(var i = 0; i < arrCurrBlocks.length; i++)
+		arrBlocksLeft.push($(arrCurrBlocks[i]).offset().left);
+		
+	smallestLeft = getNum(arrBlocksLeft, true);
+	
+	$(rotatingPoint).css("left", ($("#screen").offset().left + currBlocksResizeFor) + "px"); 
+	
+	for(var i = 0; i < arrCurrBlocks.length; i++)
+	{
+		var moveFor = $("#screen").offset().left - smallestLeft; 
+		$(arrCurrBlocks[i]).css("left", ($(arrCurrBlocks[i]).offset().left + moveFor + currBlocksResizeFor) + "px"); 
+	}
+});
